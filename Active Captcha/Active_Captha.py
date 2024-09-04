@@ -2,7 +2,7 @@ import random
 import cv2
 import numpy as np
 
-width, height = 800, 400
+width, height = 850, 400
 
 def create_ishihara_background(width, height):
     image = np.zeros((height, width, 3), dtype=np.uint8)
@@ -21,7 +21,6 @@ offset = height // 2
 cv2.line(color_image, (0, offset), (width, offset), (0, 0, 0), 1)  
 cv2.line(color_image, (width // 2, 0), (width // 2, height), (0, 0, 0), 1)  
 
-
 steps = 0
 for x in range(width):
     if steps == random.randint(5, 10) or steps > 15:
@@ -33,9 +32,29 @@ for x in range(width):
 gray_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
 _, threshold_image = cv2.threshold(gray_image, 100, 255, cv2.THRESH_BINARY)
 
+def overlay_instructions(image):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    text = "Mark three points above the graph and three below."
+    font_scale = 1
+    font_thickness = 2
+    text_size = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
+    
+    text_x, text_y = 10, 30 
+    rect_x1, rect_y1 = text_x - 10, text_y - text_size[1] - 10
+    rect_x2, rect_y2 = text_x + text_size[0] + 10, text_y + 10
+    cv2.rectangle(image, (rect_x1, rect_y1), (rect_x2, rect_y2), (0, 0, 0), -1)
+    cv2.putText(image, text, (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
 
-cv2.imshow('Active Captha ', threshold_image)
-
+def display_result(image, message):
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 1
+    font_thickness = 2
+    text_size = cv2.getTextSize(message, font, font_scale, font_thickness)[0]
+    text_x, text_y = 10, height - 30 
+    rect_x1, rect_y1 = text_x - 10, text_y - text_size[1] - 10
+    rect_x2, rect_y2 = text_x + text_size[0] + 10, text_y + 10
+    cv2.rectangle(image, (rect_x1, rect_y1), (rect_x2, rect_y2), (0, 0, 0), -1)
+    cv2.putText(image, message, (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
 
 def check_points_on_graph(points, amplitude, frequency, phase_shift, offset, width, height):
     above = 0
@@ -50,10 +69,11 @@ def check_points_on_graph(points, amplitude, frequency, phase_shift, offset, wid
             below += 1
 
     if above == 3 and below == 3:
-        print("Exactly 3 points are above the graph and 3 points are below the graph.")
+        result_message = "Correct! Exactly 3 points are above and 3 below."
     else:
-        print("The points do not match the required condition.")
-        
+        result_message = "Incorrect. The points do not match the required condition."
+    
+    return result_message
 points = []
 
 def click_event(event, x, y, flags, param):
@@ -65,20 +85,25 @@ def click_event(event, x, y, flags, param):
         updated_gray_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
         _, updated_threshold_image = cv2.threshold(updated_gray_image, 100, 255, cv2.THRESH_BINARY)
         
-        cv2.imshow('Active Captha ', updated_threshold_image)
+        overlay_instructions(updated_threshold_image)
         
         if len(points) >= 6:
+            result_message = check_points_on_graph(points, amplitude, frequency, phase_shift, offset, width, height)
+            display_result(updated_threshold_image, result_message)
             print("Selected points:", points)
-            check_points_on_graph(points, amplitude, frequency, phase_shift, offset, width, height)
             print("Press 'q' to quit the program.")
+        
+        cv2.imshow('Active Captcha', updated_threshold_image)
+        
+        while True:
+            key = cv2.waitKey(0)
+            if key == ord('q'):
+                break
+        cv2.destroyAllWindows()
 
-            while True:
-                key = cv2.waitKey(0)
-                if key == ord('q'):
-                    break
-            cv2.destroyAllWindows()
-
-cv2.setMouseCallback('Active Captha ', click_event)
+overlay_instructions(threshold_image)
+cv2.imshow('Active Captcha', threshold_image)
+cv2.setMouseCallback('Active Captcha', click_event)
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
