@@ -95,12 +95,7 @@ def click_event(event, x, y, flags, param):
 
         cv2.imshow('Active Captcha', gray_image)
 
-        while True:
-            key = cv2.waitKey(0)
-            if key == ord('q'):
-                break
-        cv2.destroyAllWindows()
-
+    
 overlay_instructions(gray_image)
 cv2.imshow('Active Captcha', gray_image)
 cv2.setMouseCallback('Active Captcha', click_event)
